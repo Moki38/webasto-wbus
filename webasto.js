@@ -93,17 +93,17 @@ var port = new serialport.SerialPort(String(serial_device), {
 //
 function webasto_oper_state(os) {
   switch(parseInt(os)) {
-    case -1: term.white(""); break;
-    case 0: term.white("Burn Out"); break;
-    case 1: term.white("Deactivation"); break;
-    case 2: term.white("Burn Out ADR"); break;
-    case 3: term.white("Burn Out Ramp"); break;
-    case 4: term.white("Off State"); break;
-    case 5: term.white("Combustion process part load"); break;
-    case 6: term.white("Combustion process full load"); break;
-    case 7: term.white("Fuel supply"); break;
-    case 8 : term.white("0x08 Combustion air fan start"); break;
-    case 9 : term.white("0x09 Fuel supply interruption"); break;
+    case -1 : term.white(""); break;
+    case  0 : term.white("0x00 Burn Out"); break;
+    case  1 : term.white("0x01 Deactivation"); break;
+    case  2 : term.white("0x02 Burn Out ADR"); break;
+    case  3 : term.white("0x03 Burn Out Ramp"); break;
+    case  4 : term.white("0x04 Off State"); break;
+    case  5 : term.white("0x05 Combustion process part load"); break;
+    case  6 : term.white("0x06 Combustion process full load"); break;
+    case  7 : term.white("0x07 Fuel supply"); break;
+    case  8 : term.white("0x08 Combustion air fan start"); break;
+    case  9 : term.white("0x09 Fuel supply interruption"); break;
     case 10 : term.white("0x0a Diagnostic state"); break;
     case 11 : term.white("0x0b Fuel pump interruption"); break;
     case 12 : term.white("0x0c EMF measurement"); break;
@@ -244,14 +244,6 @@ function webasto_keepalive() {
     webasto_run++;
     break;
   case 1:
-    port.write(webato_get_stat_1, function(err) {
-      if (err) {
-        return console.log('Error on write: ', err.message);
-      }
-    });
-    webasto_run++;
-    break;
-  case 2:
     port.write(webato_get_stat_2, function(err) {
       if (err) {
         return console.log('Error on write: ', err.message);
@@ -259,7 +251,7 @@ function webasto_keepalive() {
     });
     webasto_run++;
     break;
-  case 3:
+  case 2:
     port.write(webato_get_stat_3, function(err) {
       if (err) {
         return console.log('Error on write: ', err.message);
@@ -267,7 +259,7 @@ function webasto_keepalive() {
     });
     webasto_run++;
     break;
-  case 4:
+  case 3:
     port.write(webato_get_stat_4, function(err) {
       if (err) {
         return console.log('Error on write: ', err.message);
@@ -275,7 +267,7 @@ function webasto_keepalive() {
     });
     webasto_run++;
     break;
-  case 5:
+  case 4:
     port.write(webato_get_stat_5, function(err) {
       if (err) {
         return console.log('Error on write: ', err.message);
@@ -341,14 +333,10 @@ function webasto_display()
   term.white.moveTo(20, 8, "AF Power :             ");
   term.white.moveTo(20, 8, "AF Power : " + ((parseInt(webasto_data.status_afp))*2));
 
-          webasto_data.status_gpp  = recv_buffer[4];
-          webasto_data.status_fpf  = recv_buffer[5];
-          webasto_data.status_afp  = recv_buffer[6];
-
   term.white.moveTo(1,18, "Operating State:                                                                   ");
   term.white.moveTo(1,18, "Operating State: ");
-   webasto_oper_state(webasto_data.status_os);
- term.moveTo( 1 , 21) ;
+  webasto_oper_state(webasto_data.status_os);
+  term.moveTo( 1 , 21) ;
 }
 
 function webasto_parse()
@@ -433,7 +421,7 @@ function webasto_parse()
         }
     }
 
-    if (h < 15) {
+    if (parseInt(recv_buffer[i]) <= 15) {
       term.white("0" + h + " ");
     } else {
       term.white(h + " ");
