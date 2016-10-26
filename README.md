@@ -12,7 +12,7 @@ Its a very very basic WBUS interface to my Webasto (EVO-40) with Multicontrol HD
 It looks like a has a newer/other version of WBUS than the other WBUS interface programs.
 And maybe i am doing something wrong ;) 
 
-I added this line to UDEV (/etc/udev/rules.d/99-usb-serial.rules)
+I added this line to UDEV (/etc/udev/rules.d/99-usb-serial.rules)   
 SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", ATTRS{serial}=="A600AIZO", SYMLINK+="ttyWBUS"
 
 Once again, you may need someting completly different for your setup.
