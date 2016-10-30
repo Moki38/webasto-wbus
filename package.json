@@ -1,15 +1,15 @@
 {
     "name": "webasto-wbus",
-    "version": "0.0.3",
+    "version": "0.1.0",
     "description": "webasto-wbus interface for Raspberry PI",
-    "main": "webasto.js",
+    "main": "index.js",
     "repository": {
       "type": "git",
       "url": "https://github.com/Moki38/webasto-wbus.git"
     },
     "private": false,
     "scripts": {
-        "start": "node webasto.js"
+        "start": "node test.js"
     },
     "dependencies": {
        "serialport": "~4.0.0",

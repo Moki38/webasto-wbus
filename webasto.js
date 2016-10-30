@@ -324,7 +324,7 @@ function webasto_display()
   term.white.moveTo(20, 3, "Power (W):             ");
   term.white.moveTo(20, 3, "Power (W): " + ((parseInt(webasto_data.status_hp1)*256)+parseInt(webasto_data.status_hp2))/10);
   term.white.moveTo(20, 4, "FD Ohm(o):             ");
-  term.white.moveTo(20, 4, "FD Ohm(o): " + ((parseInt(webasto_data.status_fdr1)*256)+parseInt(webasto_data.status_fdr2))/100000);
+  term.white.moveTo(20, 4, "FD Ohm(o): " + ((parseInt(webasto_data.status_fdr1)*256)+parseInt(webasto_data.status_fdr2))/10000);
 
   term.white.moveTo(20, 6, "GP Power :             ");
   term.white.moveTo(20, 6, "GP Power : " + ((parseInt(webasto_data.status_gpp))*2));
