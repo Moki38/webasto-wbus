@@ -210,27 +210,30 @@ function wbus_parse() {
   var wbus_length;
 
   var heater_response = false;
-    
+
+//  console.log(wbus_buffer);
+  
   wbus_data = parseInt(('00' + wbus_buffer[0].toString(16)).substr(-2),16);
   wbus_length = parseInt((wbus_buffer[1].toString(16)).substr(-2),16);
 
+//  console.log("wbus_data: " + wbus_data + " wbus_length: " + wbus_length);
   switch (wbus_data) {
      case 0x34:
-//      console.log('From: MultiControl  to:    Heater.');
+//        console.log('From: MultiControl  to:    Heater.');
         break;
      case 0x43:
-//      console.log('From: Heater        to:    MultiControl.');
+//        console.log('From: Heater        to:    MultiControl.');
         break;
      case 0x4f:
-//      console.log('From: Heater        to:    Raspberry PI.');
+//        console.log('From: Heater        to:    Raspberry PI.');
         heater_response = true;
         break;
      case 0xf4:
-//      console.log('From: Raspberry PI  to:    Heater.');
+//        console.log('From: Raspberry PI  to:    Heater.');
         break;
   } 
 
-  if (heater_response && i == 2 && wbus_data == 0xd0) {
+  if (heater_response && wbus_buffer[2] == 0xd0) {
     if (parseInt(('00' + wbus_buffer[3].toString(16)).substr(-2),16) == 2) {
       webasto_data.status_ms  = (wbus_buffer[4] & 0x01) ? 1 : 0;
       webasto_data.status_shr = (wbus_buffer[4] & 0x10) ? 1 : 0;
@@ -260,6 +263,7 @@ function wbus_parse() {
     }
     if (parseInt((wbus_buffer[3].toString(16)).substr(-2),16) == 7) {
       webasto_data.status_os  = wbus_parse_state(wbus_buffer[4]);
+      //console.log(wbus_parse_state(wbus_buffer[4]));
     }
     if (parseInt((wbus_buffer[3].toString(16)).substr(-2),16) == 0x0f) {
       webasto_data.status_gpp  = ((parseInt(wbus_buffer[4]))*2);
@@ -267,17 +271,20 @@ function wbus_parse() {
       webasto_data.status_afp  = ((parseInt(wbus_buffer[6]))*2);
     }
   }
-  if (heater_response && i == 2 && wbus_data == 0xd1) {
+  if (heater_response && wbus_buffer[2] == 0xd1) {
     if (parseInt((wbus_buffer[3].toString(16)).substr(-2),16) == 0x0a) {    // W-BUS version. 1 byte, each nibble is one digit. 0x33 means version 3.3
       webasto_data.info_version  = ((wbus_buffer[4]&0xf)+"."+(wbus_buffer[4]>>4)) 
     }
     if (parseInt((wbus_buffer[3].toString(16)).substr(-2),16) == 0x0b) {    // Device Name: ASCII Text string.
-      webasto_data.info_devname  = Buffer.from(wbus_buffer, 2, wbus_length-2);
+      //webasto_data.info_devname  = Buffer.from(wbus_buffer, 2, wbus_length-2);
+      webasto_data.info_devname  = "Webasto Air Top Evo 40";
     }
     if (parseInt((wbus_buffer[3].toString(16)).substr(-2),16) == 0x0c) {    // W-BUS code
-      webasto_data.info_wbuscode  = Buffer.from(wbus_buffer, 2, wbus_length-2);
+      //webasto_data.info_wbuscode  = Buffer.from(wbus_buffer, 2, wbus_length-2);
+      webasto_data.info_wbuscode  = "None";
     }
   }
+//  console.log(webasto_data);
 }
 
 //
@@ -293,6 +300,8 @@ wbus.on('data', function(data) {
   }
 
   for (b = 0; b < data.length; b++) {
+
+
 //    console.log(('00' + data[b].toString(16)).substr(-2));
     
     var wbus_data = parseInt(('00' + data[b].toString(16)).substr(-2),16);
@@ -358,16 +367,17 @@ exports.state = function() {
   return webasto_data;
 }
 
-exports.state = function(callback) {
-  if (typeof callback === "function") {
-      callback(webasto_data);
-  }
-}
+//exports.state = function(callback) {
+//  if (typeof callback === "function") {
+//      callback(webasto_data);
+//  }
+//}
 
 //
 // Request STATUS from Webasto heater
 //
 function wbus_status() {
+
   switch(webasto_run) {
     case 0:
       wbus.write(webasto_get_stat_0, function(err) {
@@ -417,6 +427,30 @@ function wbus_status() {
       });
       webasto_run++;
       break;
+    case 6:
+      wbus.write(webasto_init_1, function(err) {
+        if (err) {
+          return console.log('(wbus_status) Error on write: ', err.message);
+        }
+      });
+      webasto_run++;
+      break;
+    case 7:
+      wbus.write(webasto_init_2, function(err) {
+        if (err) {
+          return console.log('(wbus_status) Error on write: ', err.message);
+        }
+      });
+      webasto_run++;
+      break;
+    case 8:
+      wbus.write(webasto_init_3, function(err) {
+        if (err) {
+          return console.log('(wbus_status) Error on write: ', err.message);
+        }
+      });
+      webasto_run++;
+      break;
     default:
       webasto_run = 0;
   }
@@ -450,7 +484,8 @@ exports.off = function() {
 // Open WBUS Serial port
 //
 exports.open = function() {
-  while (webasto_active !== 1 &&  webasto_active_retry <= 3 && wbus.isOpen() ) {
+  sleep.sleep(5);
+  while (webasto_active !== 1 &&  webasto_active_retry <= 8 && wbus.isOpen() ) {
     wbus.write(webasto_init_0, function(err) {
       if (err) {
         return console.log('(wbus.open) Error on write: ', err.message);
@@ -465,25 +500,27 @@ exports.open = function() {
       return console.log('(wbus.open) Error on write: ', err.message);
     }
   });
-  sleep.usleep(100);
+  sleep.sleep(1);
   wbus.write(webasto_init_2, function(err) {
     if (err) {
       return console.log('(wbus.open) Error on write: ', err.message);
     }
   });
+  sleep.sleep(1);
   sleep.usleep(100);
   wbus.write(webasto_init_3, function(err) {
     if (err) {
       return console.log('(wbus.open) Error on write: ', err.message);
     }
   });
+  sleep.sleep(1);
   sleep.usleep(100);
 
 //
 // Set interval polling for Webasto
 //
   var statusinterval = setInterval(function () {
-     wbus_status();
+    wbus_status();
 
 // If we are controlling the Webasto, we need to send a keepalife
      if (webasto_pi_control === 1) {

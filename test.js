@@ -2,10 +2,11 @@ var term = require( 'terminal-kit' ).terminal;
 //var wbus = require( 'webasto-wbus' );
 var wbus = require( './index.js' );
 
+var webasto_data = {};
+
 function webasto_display() {
 
-  var webasto_data = {};
-  wbus.state(webasto_data);
+  webasto_data=wbus.state();
 
   term.white.moveTo(1, 2, "CAF: %d",webasto_data.status_caf);
   if (webasto_data.status_caf)  { term.yellow.moveTo(6, 2, "ON "); } else { term.yellow.moveTo(6, 2, "OFF"); }
@@ -61,8 +62,8 @@ function terminate()
     setTimeout( function() { process.exit() } , 100 ) ;
 }
 
-term.clear();
 wbus.open();
+term.clear();
 term.grabInput( { mouse: 'button' } ) ;
 
 var displayinterval = setInterval(function () {
