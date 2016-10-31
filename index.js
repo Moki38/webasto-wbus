@@ -359,7 +359,9 @@ exports.state = function() {
 }
 
 exports.state = function(callback) {
-  callback(webasto_data);
+  if (typeof callback === "function") {
+      callback(webasto_data);
+  }
 }
 
 //
@@ -368,7 +370,7 @@ exports.state = function(callback) {
 function wbus_status() {
   switch(webasto_run) {
     case 0:
-      wbus.write(webato_get_stat_0, function(err) {
+      wbus.write(webasto_get_stat_0, function(err) {
         if (err) {
           return console.log('(wbus_status) Error on write: ', err.message);
         }
@@ -376,7 +378,7 @@ function wbus_status() {
       webasto_run++;
       break;
     case 1:
-      wbus.write(webato_get_stat_1, function(err) {
+      wbus.write(webasto_get_stat_1, function(err) {
         if (err) {
           return console.log('(wbus_status) Error on write: ', err.message);
         }
@@ -384,7 +386,7 @@ function wbus_status() {
       webasto_run++;
       break;
     case 2:
-      wbus.write(webato_get_stat_2, function(err) {
+      wbus.write(webasto_get_stat_2, function(err) {
         if (err) {
           return console.log('(wbus_status) Error on write: ', err.message);
         }
@@ -392,7 +394,7 @@ function wbus_status() {
       webasto_run++;
       break;
     case 3:
-      wbus.write(webato_get_stat_3, function(err) {
+      wbus.write(webasto_get_stat_3, function(err) {
         if (err) {
           return console.log('(wbus_status) Error on write: ', err.message);
         }
@@ -400,7 +402,7 @@ function wbus_status() {
       webasto_run++;
       break;
     case 4:
-      wbus.write(webato_get_stat_4, function(err) {
+      wbus.write(webasto_get_stat_4, function(err) {
         if (err) {
           return console.log('(wbus_status) Error on write: ', err.message);
         }
@@ -408,7 +410,7 @@ function wbus_status() {
       webasto_run++;
       break;
     case 5:
-      wbus.write(webato_get_stat_5, function(err) {
+      wbus.write(webasto_get_stat_5, function(err) {
         if (err) {
           return console.log('(wbus_status) Error on write: ', err.message);
         }
@@ -425,7 +427,7 @@ function wbus_status() {
 //
 exports.on = function() {
   webasto_pi_control = 1;
-  wbus.write(webato_turn_on, function(err) {
+  wbus.write(webasto_turn_on, function(err) {
     if (err) {
       return console.log('(wbus.on) Error on write: ', err.message);
     }
@@ -437,7 +439,7 @@ exports.on = function() {
 //
 exports.off = function() {
   webasto_pi_control = 0;
-  wbus.write(webato_turn_off, function(err) {
+  wbus.write(webasto_turn_off, function(err) {
     if (err) {
       return console.log('(wbus.off) Error on write: ', err.message);
     }
