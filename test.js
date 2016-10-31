@@ -1,5 +1,6 @@
 var term = require( 'terminal-kit' ).terminal;
-var wbus = require( 'webasto-wbus' );
+//var wbus = require( 'webasto-wbus' );
+var wbus = require( './index.js' );
 
 function webasto_display() {
   term.white.moveTo(10, 20, "Webasto State:                                                ");
