@@ -4,9 +4,8 @@
 
 Basic userinterface
  Key 
-  - 1: Get Webasto Status
-  - 2: Turn Webasto Heater On
-  - 3: Turn Webasto Heater Off
+  - 1: Turn Webasto Heater On
+  - 2: Turn Webasto Heater Off
 
 Its a very very basic WBUS interface to my Webasto (EVO-40) with Multicontrol HD.
 It looks like a has a newer/other version of WBUS than the other WBUS interface programs.
@@ -26,7 +25,7 @@ $ npm install
 
 ### Usage
 
-$ nodejs webasto.js
+$ nodejs test.js
 
 ```
 
