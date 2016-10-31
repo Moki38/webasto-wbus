@@ -1,6 +1,6 @@
 # Webasto WBUS
 
-*** This is work in Progress, not usable yet! ***
+*** This is work in Progress! ***
 
 Basic userinterface
  Key 
