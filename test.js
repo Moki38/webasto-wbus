@@ -3,8 +3,11 @@ var term = require( 'terminal-kit' ).terminal;
 var wbus = require( './index.js' );
 
 function webasto_display() {
+
+  var webasto_data = wbus.state();
+
   term.white.moveTo(10, 20, "Webasto State:                                                ");
-  term.white.moveTo(10, 20, "Webasto State: %s", wbus.state(wbus.heater_state()));
+  term.white.moveTo(10, 20, "Webasto State: %s", webasto_data.status_os);
 }
 
 function terminate()

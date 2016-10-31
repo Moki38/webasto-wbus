@@ -15,8 +15,8 @@ var webasto_active_retry = 0;
 var webasto_run = 0;
 var webasto_pi_control = 0;
 
+var wbus_buffer        = new Buffer.alloc(30);
 var wbus_pos = 0;
-var wbus_buffer        = new Buffer(30);
 var wbus_length = 0;
 var wbus_xor = 0;
 
@@ -34,39 +34,54 @@ var webasto_data = {
 
         status_temp:   0,   // Temperature with  50 C offset (20 C is value=70)
         status_mvolt:  0,   // Voltage in mili Volt
-        status_mvolt1: 0, // Voltage in mili Volt, big endian
-        status_mvolt2: 0, // Voltage in mili Volt, big endian
         status_fd:     0,   // Flame detector (set 0x01, not set 0x00)
         status_hp:     0,   // Heating power in watts, big endian
-        status_hp1:    0,   // Heating power in watts, big endian
-        status_hp2:    0,   // Heating power in watts, big endian
         status_fdr:    0,   // Flame detector resistance in mili Ohm, big endian
-        status_fdr1:   0,   // Flame detector resistance in mili Ohm, big endian
-        status_fdr2:   0,   // Flame detector resistance in mili Ohm, big endian
+
+        status_wh:     0,   // Working hours
+        status_wm:     0,   // Working minutes
+        status_oh:     0,   // Operating hours
+        status_om:     0,   // Operating minutes
+        status_sc:     0,   // Start counter
 
         status_gpp: 0,      // Glow plug power in percent *2
         status_fpf: 0,      // Fuel pump pulse frequency in Hz *2
         status_afp: 0,      // Combustion air fan in percent*2
 
-        sensor_temp: 0,     // Temperature with 50?C offset (20?C is represented by 70)
-        sensor_volt: 0,     // 2 bytes Spannung in mili Volt, big endian
-        sensor_fd:   0,     // 1 byte Flame detector flag
-        sensor_he:   0,     // 2 byte, heating power, in percent or watts (semantic seems wrong, heating energy?)
-        sensor_gpr:  0      // 2 byte, glow plug resistance in mili Ohm.
+        info_version: 0,    // Version 
+        info_devname: 0,    // Device name
+        info_wbuscode: 0,   // WBUS Code
+
+        error_count:   0,   // Total number of errors
+        error_buffer:  0,   // Buffer of errors
+        check:      0       // check
 }
 
-var webasto_init_0     = Buffer.from([0xf4, 0x02, 0x38, 0xce]);                      // Diagnostic
+var webasto_init_0     = Buffer.from([0xf4, 0x02, 0x38, 0xce]);                            // Diagnostic
+var webasto_init_1     = Buffer.from([0xf4, 0x03, 0x51, 0x0a, 0xac]);                      // WBUS version
+var webasto_init_2     = Buffer.from([0xf4, 0x03, 0x51, 0x0b, 0xad]);                      // Device name
+var webasto_init_3     = Buffer.from([0xf4, 0x03, 0x51, 0x0c, 0xaa]);                      // WBUS Code
 
 var webasto_get_stat_0 = Buffer.from([0xf4, 0x03, 0x50, 0x02, 0xa5]);
 var webasto_get_stat_1 = Buffer.from([0xf4, 0x03, 0x50, 0x03, 0xa4]);
 var webasto_get_stat_2 = Buffer.from([0xf4, 0x03, 0x50, 0x07, 0xa0]);
 var webasto_get_stat_3 = Buffer.from([0xf4, 0x03, 0x50, 0x05, 0xa2]);
 var webasto_get_stat_4 = Buffer.from([0xf4, 0x03, 0x50, 0x0f, 0xa8]);
+var webasto_get_stat_5 = Buffer.from([0xf4, 0x03, 0x50, 0x06, 0xa1]);
 
 var webasto_turn_on    = Buffer.from([0xf4, 0x05, 0x2a, 0x21, 0xff, 0x4a, 0x4f]);
 var webasto_turn_off   = Buffer.from([0xf4, 0x05, 0x2a, 0x21, 0xff, 0x47, 0x42]);
 var webasto_keep_alife = Buffer.from([0xf4, 0x04, 0x44, 0x21, 0x00, 0x95]); 
 
+//
+// Untested
+//
+var webato_multi_on    = Buffer.from([0xf3, 0x05, 0x2a, 0x21, 0xff, 0x47, 0x82]); // From PI to MultiCtrl ???
+var webato_multi_off   = Buffer.from([0xf3, 0x02, 0x10, 0x26]);
+
+//
+// SerialPort
+//
 var wbus = new serialport(String(config.wbus.device), {
                 baudrate: 2400,
                 dataBits: 8,
@@ -74,7 +89,13 @@ var wbus = new serialport(String(config.wbus.device), {
                 parity: 'even',
                 parser: serialport.parsers.raw});
 
-exports.state = function(state) {
+exports.error = function(error) {
+  switch(parseInt(error)) {
+    case 0x00 : return("0x00 No Error"); break;
+  }
+}
+
+function wbus_parse_state(state) {
   switch(parseInt(state)) {
     case 0x00 : return("0x00 Burn Out"); break;
     case 0x01 : return("0x01 Deactivation"); break;
@@ -185,64 +206,76 @@ function wbus_parse() {
   var b = 0;
   var i = 0;
 
+  var wbus_data;
+  var wbus_length;
+
   var heater_response = false;
+    
+  wbus_data = parseInt(('00' + wbus_buffer[0].toString(16)).substr(-2),16);
+  wbus_length = parseInt((wbus_buffer[1].toString(16)).substr(-2),16);
 
-  for (i = 0; i <= wbus_buffer[1]+1; i++) {
-    var wbus_data = parseInt(('00' + wbus_buffer[i].toString(16)).substr(-2),16);
-    if (i === 0) {
-      switch (wbus_data) {
-        case 0x34:
-//          console.log('From: MultiControl  to:    Heater.');
-          break;
-        case 0x43:
-//          console.log('From: Heater        to:    MultiControl.');
-          break;
-        case 0x4f:
-//          console.log('From: Heater        to:    Raspberry PI.');
-          heater_response = true;
-          break;
-        case 0xf4:
-//          console.log('From: Raspberry PI  to:    Heater.');
-          break;
-      } 
+  switch (wbus_data) {
+     case 0x34:
+//      console.log('From: MultiControl  to:    Heater.');
+        break;
+     case 0x43:
+//      console.log('From: Heater        to:    MultiControl.');
+        break;
+     case 0x4f:
+//      console.log('From: Heater        to:    Raspberry PI.');
+        heater_response = true;
+        break;
+     case 0xf4:
+//      console.log('From: Raspberry PI  to:    Heater.');
+        break;
+  } 
+
+  if (heater_response && i == 2 && wbus_data == 0xd0) {
+    if (parseInt(('00' + wbus_buffer[3].toString(16)).substr(-2),16) == 2) {
+      webasto_data.status_ms  = (wbus_buffer[4] & 0x01) ? 1 : 0;
+      webasto_data.status_shr = (wbus_buffer[4] & 0x10) ? 1 : 0;
     }
-//    console.log(parseInt((wbus_buffer[i].toString(16)).substr(-2),16));
-
-    if (heater_response && i == 2 && wbus_data == 0xd0) {
-      if (parseInt(('00' + wbus_buffer[3].toString(16)).substr(-2),16) == 2) {
-        webasto_data.status_ms  = (wbus_buffer[4] & 0x01) ? 1 : 0;
-        webasto_data.status_shr = (wbus_buffer[4] & 0x10) ? 1 : 0;
-      }
-      if (parseInt(('00' + wbus_buffer[3].toString(16)).substr(-2),16) == 3) {
-        webasto_data.status_caf = (wbus_buffer[4] & 0x01) ? 1 : 0;
-        webasto_data.status_gp  = (wbus_buffer[4] & 0x02) ? 1 : 0;
-        webasto_data.status_fp  = (wbus_buffer[4] & 0x04) ? 1 : 0;
-        webasto_data.status_cp  = (wbus_buffer[4] & 0x08) ? 1 : 0;
-        webasto_data.status_vfr = (wbus_buffer[4] & 0x10) ? 1 : 0;
-        webasto_data.status_nsh = (wbus_buffer[4] & 0x20) ? 1 : 0;
-        webasto_data.status_fi  = (wbus_buffer[4] & 0x40) ? 1 : 0;
-      }
-      if (parseInt(('00' + wbus_buffer[3].toString(16)).substr(-2),16) == 5) {
-        webasto_data.status_temp   = wbus_buffer[4];
-        webasto_data.status_mvolt1 = wbus_buffer[5];
-        webasto_data.status_mvolt2 = wbus_buffer[6];
-        webasto_data.status_mvolt  = Math.floor(((parseInt(webasto_data.status_mvolt1)*256)+parseInt(webasto_data.status_mvolt2))/10)/100;
-        webasto_data.status_fd     = wbus_buffer[7];
-        webasto_data.status_hp1    = wbus_buffer[8];
-        webasto_data.status_hp2    = wbus_buffer[9];
-        webasto_data.status_hp     = ((parseInt(webasto_data.status_hp1)*256)+parseInt(webasto_data.status_hp2))/10;
-        webasto_data.status_fdr1   = wbus_buffer[10];
-        webasto_data.status_fdr2   = wbus_buffer[11];
-        webasto_data.status_fdr    = ((parseInt(webasto_data.status_fdr1)*256)+parseInt(webasto_data.status_fdr2))/10000;
-      }
-      if (parseInt((wbus_buffer[3].toString(16)).substr(-2),16) == 7) {
-        webasto_data.status_os  = wbus_buffer[4];
-      }
-      if (parseInt((wbus_buffer[3].toString(16)).substr(-2),16) == 0x0f) {
-        webasto_data.status_gpp  = ((parseInt(wbus_buffer[4]))*2);
-        webasto_data.status_fpf  = ((parseInt(wbus_buffer[5]))*2);
-        webasto_data.status_afp  = ((parseInt(wbus_buffer[6]))*2);
-      }
+    if (parseInt(('00' + wbus_buffer[3].toString(16)).substr(-2),16) == 3) {
+      webasto_data.status_caf = (wbus_buffer[4] & 0x01) ? 1 : 0;
+      webasto_data.status_gp  = (wbus_buffer[4] & 0x02) ? 1 : 0;
+      webasto_data.status_fp  = (wbus_buffer[4] & 0x04) ? 1 : 0;
+      webasto_data.status_cp  = (wbus_buffer[4] & 0x08) ? 1 : 0;
+      webasto_data.status_vfr = (wbus_buffer[4] & 0x10) ? 1 : 0;
+      webasto_data.status_nsh = (wbus_buffer[4] & 0x20) ? 1 : 0;
+      webasto_data.status_fi  = (wbus_buffer[4] & 0x40) ? 1 : 0;
+    }
+    if (parseInt(('00' + wbus_buffer[3].toString(16)).substr(-2),16) == 5) {
+      webasto_data.status_temp   = wbus_buffer[4] - 50;
+      webasto_data.status_mvolt  = Math.floor(((parseInt(wbus_buffer[5])*256)+parseInt(wbus_buffer[6]))/10)/100;
+      webasto_data.status_fd     = wbus_buffer[7];
+      webasto_data.status_hp     = ((parseInt(wbus_buffer[8])*256)+parseInt(wbus_buffer[9]))/10;
+      webasto_data.status_fdr    = ((parseInt(wbus_buffer[10])*256)+parseInt(wbus_buffer[11]))/10000;
+    }
+    if (parseInt((wbus_buffer[3].toString(16)).substr(-2),16) == 6) {
+      webasto_data.status_wh   = ((parseInt(wbus_buffer[4])*256)+parseInt(wbus_buffer[5]));
+      webasto_data.status_wm   = wbus_buffer[6];
+      webasto_data.status_oh   = ((parseInt(wbus_buffer[7])*256)+parseInt(wbus_buffer[8]));
+      webasto_data.status_om   = wbus_buffer[9];
+      webasto_data.status_sc   = ((parseInt(wbus_buffer[10])*256)+parseInt(wbus_buffer[11]));
+    }
+    if (parseInt((wbus_buffer[3].toString(16)).substr(-2),16) == 7) {
+      webasto_data.status_os  = wbus_parse_state(wbus_buffer[4]);
+    }
+    if (parseInt((wbus_buffer[3].toString(16)).substr(-2),16) == 0x0f) {
+      webasto_data.status_gpp  = ((parseInt(wbus_buffer[4]))*2);
+      webasto_data.status_fpf  = ((parseInt(wbus_buffer[5]))*2);
+      webasto_data.status_afp  = ((parseInt(wbus_buffer[6]))*2);
+    }
+  }
+  if (heater_response && i == 2 && wbus_data == 0xd1) {
+    if (parseInt((wbus_buffer[3].toString(16)).substr(-2),16) == 0x0a) {    // W-BUS version. 1 byte, each nibble is one digit. 0x33 means version 3.3
+      webasto_data.info_version  = ((wbus_buffer[4]&0xf)+"."+(wbus_buffer[4]>>4)) 
+    }
+    if (parseInt((wbus_buffer[3].toString(16)).substr(-2),16) == 0x0b) {    // Device Name: ASCII Text string.
+      webasto_data.info_devname  = Buffer.from(wbus_buffer, 2, wbus_length-2);
+    }
+    if (parseInt((wbus_buffer[3].toString(16)).substr(-2),16) == 0x0c) {    // W-BUS code
+      webasto_data.info_wbuscode  = Buffer.from(wbus_buffer, 2, wbus_length-2);
     }
   }
 }
@@ -319,10 +352,14 @@ wbus.on('data', function(data) {
 });
 
 //
-// Return Operation State of the Webasto
+// Return Webasto Data
 //
-exports.heater_state = function() {
-  return webasto_data.status_os;
+exports.state = function() {
+  return webasto_data;
+}
+
+exports.state = function(callback) {
+  callback(webasto_data);
 }
 
 //
@@ -333,7 +370,7 @@ function wbus_status() {
     case 0:
       wbus.write(webato_get_stat_0, function(err) {
         if (err) {
-          return console.log('Error on write: ', err.message);
+          return console.log('(wbus_status) Error on write: ', err.message);
         }
       });
       webasto_run++;
@@ -341,7 +378,7 @@ function wbus_status() {
     case 1:
       wbus.write(webato_get_stat_1, function(err) {
         if (err) {
-          return console.log('Error on write: ', err.message);
+          return console.log('(wbus_status) Error on write: ', err.message);
         }
       });
       webasto_run++;
@@ -349,7 +386,7 @@ function wbus_status() {
     case 2:
       wbus.write(webato_get_stat_2, function(err) {
         if (err) {
-          return console.log('Error on write: ', err.message);
+          return console.log('(wbus_status) Error on write: ', err.message);
         }
       });
       webasto_run++;
@@ -357,7 +394,7 @@ function wbus_status() {
     case 3:
       wbus.write(webato_get_stat_3, function(err) {
         if (err) {
-          return console.log('Error on write: ', err.message);
+          return console.log('(wbus_status) Error on write: ', err.message);
         }
       });
       webasto_run++;
@@ -365,7 +402,15 @@ function wbus_status() {
     case 4:
       wbus.write(webato_get_stat_4, function(err) {
         if (err) {
-          return console.log('Error on write: ', err.message);
+          return console.log('(wbus_status) Error on write: ', err.message);
+        }
+      });
+      webasto_run++;
+      break;
+    case 5:
+      wbus.write(webato_get_stat_5, function(err) {
+        if (err) {
+          return console.log('(wbus_status) Error on write: ', err.message);
         }
       });
       webasto_run++;
@@ -382,7 +427,7 @@ exports.on = function() {
   webasto_pi_control = 1;
   wbus.write(webato_turn_on, function(err) {
     if (err) {
-      return console.log('Error on write: ', err.message);
+      return console.log('(wbus.on) Error on write: ', err.message);
     }
   });
 }
@@ -394,7 +439,7 @@ exports.off = function() {
   webasto_pi_control = 0;
   wbus.write(webato_turn_off, function(err) {
     if (err) {
-      return console.log('Error on write: ', err.message);
+      return console.log('(wbus.off) Error on write: ', err.message);
     }
   });
 }
@@ -406,13 +451,31 @@ exports.open = function() {
   while (webasto_active !== 1 &&  webasto_active_retry <= 3 && wbus.isOpen() ) {
     wbus.write(webasto_init_0, function(err) {
       if (err) {
-        return console.log('Error on write: ', err.message);
+        return console.log('(wbus.open) Error on write: ', err.message);
       }
     });
     wbus.flush();
     sleep.sleep(2);
     webasto_active_retry++;
   }
+  wbus.write(webasto_init_1, function(err) {
+    if (err) {
+      return console.log('(wbus.open) Error on write: ', err.message);
+    }
+  });
+  sleep.usleep(100);
+  wbus.write(webasto_init_2, function(err) {
+    if (err) {
+      return console.log('(wbus.open) Error on write: ', err.message);
+    }
+  });
+  sleep.usleep(100);
+  wbus.write(webasto_init_3, function(err) {
+    if (err) {
+      return console.log('(wbus.open) Error on write: ', err.message);
+    }
+  });
+  sleep.usleep(100);
 
 //
 // Set interval polling for Webasto
@@ -424,7 +487,7 @@ exports.open = function() {
      if (webasto_pi_control === 1) {
        wbus.write(webasto_keep_alife, function(err) {
          if (err) {
-           return console.log('Error on write: ', err.message);
+           return console.log('(webasto_keep_alife) Error on write: ', err.message);
          }
        });
      }
@@ -432,6 +495,7 @@ exports.open = function() {
 }
 
 exports.close = function() {
+  webasto_pi_control = 0;
   wbus.close();
 }
 
