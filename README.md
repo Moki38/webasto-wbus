@@ -20,13 +20,12 @@ Once again, you may need someting completly different for your setup.
 
 ```
 $ npm install 
-
 ```
 
 ### Usage
 
+```
 $ nodejs test.js
-
 ```
 
 ### Restrictions
@@ -35,6 +34,6 @@ This version was tested with a USB ODB2 interface on a Webasto EVO 40 heater wit
 
 This version has been build/tested with Node v6
 $curl --silent --location https://rpm.nodesource.com/setup_6.x | bash -
+```
 
-
-ps: I am not a programmer, just a tinker. (watch, think and tinker)
+ps: I am not real programmer, just a tinker. (watch, think and tinker)
