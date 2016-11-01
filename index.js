@@ -69,8 +69,11 @@ var webasto_get_stat_3 = Buffer.from([0xf4, 0x03, 0x50, 0x05, 0xa2]);
 var webasto_get_stat_4 = Buffer.from([0xf4, 0x03, 0x50, 0x0f, 0xa8]);
 var webasto_get_stat_5 = Buffer.from([0xf4, 0x03, 0x50, 0x06, 0xa1]);
 
-var webasto_turn_on    = Buffer.from([0xf4, 0x05, 0x2a, 0x21, 0xff, 0x4a, 0x4f]);
-var webasto_turn_off   = Buffer.from([0xf4, 0x05, 0x2a, 0x21, 0xff, 0x47, 0x42]);
+var webasto_turn_on    = Buffer.from([0xf4, 0x03, 0x21, 0x3b, 0xed]);
+//var webasto_turn_on    = Buffer.from([0xf4, 0x03, 0x20, 0xff, 0x28]);
+//var webasto_turn_on    = Buffer.from([0xf4, 0x05, 0x2a, 0x21, 0xff, 0x4a, 0x4f]);
+//var webasto_turn_off   = Buffer.from([0xf4, 0x05, 0x2a, 0x21, 0xff, 0x47, 0x42]);
+var webasto_turn_off   = Buffer.from([0xf4, 0x02, 0x10, 0xe6]);
 var webasto_keep_alife = Buffer.from([0xf4, 0x04, 0x44, 0x21, 0x00, 0x95]); 
 
 //
@@ -211,7 +214,7 @@ function wbus_parse() {
 
   var heater_response = false;
 
-//  console.log(wbus_buffer);
+  // console.log(wbus_buffer);
   
   wbus_data = parseInt(('00' + wbus_buffer[0].toString(16)).substr(-2),16);
   wbus_length = parseInt((wbus_buffer[1].toString(16)).substr(-2),16);
@@ -380,6 +383,17 @@ function wbus_status() {
 
   switch(webasto_run) {
     case 0:
+    case 5:
+      if (webasto_pi_control === 1) {
+        wbus.write(webasto_keep_alife, function(err) {
+          if (err) {
+            return console.log('(wbus_status) Error on write: ', err.message);
+          }
+        });
+        webasto_run++;
+      }
+      break;
+    case 1:
       wbus.write(webasto_get_stat_0, function(err) {
         if (err) {
           return console.log('(wbus_status) Error on write: ', err.message);
@@ -387,7 +401,7 @@ function wbus_status() {
       });
       webasto_run++;
       break;
-    case 1:
+    case 2:
       wbus.write(webasto_get_stat_1, function(err) {
         if (err) {
           return console.log('(wbus_status) Error on write: ', err.message);
@@ -395,7 +409,7 @@ function wbus_status() {
       });
       webasto_run++;
       break;
-    case 2:
+    case 3:
       wbus.write(webasto_get_stat_2, function(err) {
         if (err) {
           return console.log('(wbus_status) Error on write: ', err.message);
@@ -403,7 +417,7 @@ function wbus_status() {
       });
       webasto_run++;
       break;
-    case 3:
+    case 4:
       wbus.write(webasto_get_stat_3, function(err) {
         if (err) {
           return console.log('(wbus_status) Error on write: ', err.message);
@@ -411,7 +425,7 @@ function wbus_status() {
       });
       webasto_run++;
       break;
-    case 4:
+    case 6:
       wbus.write(webasto_get_stat_4, function(err) {
         if (err) {
           return console.log('(wbus_status) Error on write: ', err.message);
@@ -419,7 +433,7 @@ function wbus_status() {
       });
       webasto_run++;
       break;
-    case 5:
+    case 7:
       wbus.write(webasto_get_stat_5, function(err) {
         if (err) {
           return console.log('(wbus_status) Error on write: ', err.message);
@@ -427,7 +441,7 @@ function wbus_status() {
       });
       webasto_run++;
       break;
-    case 6:
+    case 8:
       wbus.write(webasto_init_1, function(err) {
         if (err) {
           return console.log('(wbus_status) Error on write: ', err.message);
@@ -435,7 +449,7 @@ function wbus_status() {
       });
       webasto_run++;
       break;
-    case 7:
+    case 9:
       wbus.write(webasto_init_2, function(err) {
         if (err) {
           return console.log('(wbus_status) Error on write: ', err.message);
@@ -443,7 +457,7 @@ function wbus_status() {
       });
       webasto_run++;
       break;
-    case 8:
+    case 10:
       wbus.write(webasto_init_3, function(err) {
         if (err) {
           return console.log('(wbus_status) Error on write: ', err.message);
@@ -521,15 +535,6 @@ exports.open = function() {
 //
   var statusinterval = setInterval(function () {
     wbus_status();
-
-// If we are controlling the Webasto, we need to send a keepalife
-     if (webasto_pi_control === 1) {
-       wbus.write(webasto_keep_alife, function(err) {
-         if (err) {
-           return console.log('(webasto_keep_alife) Error on write: ', err.message);
-         }
-       });
-     }
   }, 2000);
 }
 

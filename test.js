@@ -28,13 +28,13 @@ function webasto_display() {
   if (webasto_data.status_fd)  { term.red.moveTo(6, 10, "ON "); } else { term.red.moveTo(6, 10, "OFF"); }
 
   term.white.moveTo(20, 2, "Temp  (C):             ");
-  term.white.moveTo(20, 2, "Temp  (C): " + (webasto_data.status_temp-50));
+  term.white.moveTo(20, 2, "Temp  (C): " + webasto_data.status_temp);
   term.white.moveTo(20, 3, "Volt  (V):             ");
-  term.white.moveTo(20, 3, "Volt  (V): " + Math.floor(webasto_data.status_mvolt/10)/100);
+  term.white.moveTo(20, 3, "Volt  (V): " + webasto_data.status_mvolt);
   term.white.moveTo(20, 4, "Power (W):             ");
-  term.white.moveTo(20, 4, "Power (W): " + webasto_data.status_hp/10);
+  term.white.moveTo(20, 4, "Power (W): " + webasto_data.status_hp);
   term.white.moveTo(20, 5, "FD Ohm(o):             ");
-  term.white.moveTo(20, 5, "FD Ohm(o): " + webasto_data.status_fdr/10000);
+  term.white.moveTo(20, 5, "FD Ohm(o): " + webasto_data.status_fdr);
 
   term.white.moveTo(20, 7, "GP Power :             ");
   term.white.moveTo(20, 7, "GP Power : " + webasto_data.status_gpp);
@@ -73,11 +73,13 @@ var displayinterval = setInterval(function () {
 term.on( 'key' , function( name , matches , data ) {
     if ( matches.indexOf ('1') >= 0 ) {
       wbus.on();
-      term.yellow(1,22,'Heater ON...\n' ) ;
+      term.yellow.moveTo(10,18,'User command:                     ' ) ;
+      term.yellow.moveTo(10,18,'User command: Heater ON...\n' ) ;
     }
     if ( matches.indexOf ('2') >= 0 ) {
       wbus.off();
-      term.yellow(1,22,'Heater OFF...\n' ) ;
+      term.yellow.moveTo(10,18,'User command:                     ' ) ;
+      term.yellow.moveTo(10,18,'User command: Heater OFF...\n' ) ;
     }
     if ( matches.indexOf( 'CTRL_C' ) >= 0 ) {
       term.green( 'CTRL-C received...\n' ) ;

@@ -1,6 +1,6 @@
 {
     "name": "webasto-wbus",
-    "version": "0.1.4",
+    "version": "0.2.0",
     "description": "webasto-wbus interface for Raspberry PI",
     "main": "index.js",
     "repository": {
