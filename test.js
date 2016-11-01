@@ -2,6 +2,11 @@ var term = require( 'terminal-kit' ).terminal;
 //var wbus = require( 'webasto-wbus' );
 var wbus = require( './index.js' );
 
+var date_on = new Date();
+var date_now = new Date();
+
+var heater_on = 0;
+
 var webasto_data = {};
 
 function webasto_display() {
@@ -53,6 +58,14 @@ function webasto_display() {
   term.white.moveTo(10, 20, "Webasto State:                                                ");
   term.white.moveTo(10, 20, "Webasto State: %s", webasto_data.status_os);
   term.moveTo( 1 , 21) ;
+
+  if (heater_on) {
+    date_now = new Date();
+    term.yellow.moveTo(40,18,"                      ") ;
+    term.yellow.moveTo(40,18,(date_now-date_on)/1000) ;
+  } else {
+    term.yellow.moveTo(40,18,"                      ") ;
+  } 
 }
 
 function terminate()
@@ -72,11 +85,14 @@ var displayinterval = setInterval(function () {
 
 term.on( 'key' , function( name , matches , data ) {
     if ( matches.indexOf ('1') >= 0 ) {
+      heater_on = 1;
       wbus.on();
+      date_on = new Date();
       term.yellow.moveTo(10,18,'User command:                     ' ) ;
       term.yellow.moveTo(10,18,'User command: Heater ON...\n' ) ;
     }
     if ( matches.indexOf ('2') >= 0 ) {
+      heater_on = 0;
       wbus.off();
       term.yellow.moveTo(10,18,'User command:                     ' ) ;
       term.yellow.moveTo(10,18,'User command: Heater OFF...\n' ) ;

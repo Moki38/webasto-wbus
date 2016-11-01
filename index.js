@@ -276,7 +276,7 @@ function wbus_parse() {
   }
   if (heater_response && wbus_buffer[2] == 0xd1) {
     if (parseInt((wbus_buffer[3].toString(16)).substr(-2),16) == 0x0a) {    // W-BUS version. 1 byte, each nibble is one digit. 0x33 means version 3.3
-      webasto_data.info_version  = ((wbus_buffer[4]&0xf)+"."+(wbus_buffer[4]>>4)) 
+      webasto_data.info_version  = ((wbus_buffer[4]>>4)+"."+(wbus_buffer[4]&0xf)) 
     }
     if (parseInt((wbus_buffer[3].toString(16)).substr(-2),16) == 0x0b) {    // Device Name: ASCII Text string.
       //webasto_data.info_devname  = Buffer.from(wbus_buffer, 2, wbus_length-2);
