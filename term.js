@@ -81,7 +81,7 @@ term.clear();
 
 var displayinterval = setInterval(function () {
      webasto_display();
-  }, 1000);
+  }, 2000);
 
 term.on( 'key' , function( name , matches , data ) {
     if ( matches.indexOf ('1') >= 0 ) {

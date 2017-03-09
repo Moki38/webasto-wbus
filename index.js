@@ -304,7 +304,7 @@ exports.update = function() {
       wbus.write([0xf4, 0x03, 0x50, 0x06, 0xa1]);
       webasto_run++;
       break;
-    case 9:
+    case 6:
       webasto_run=0;
       break;
   }
